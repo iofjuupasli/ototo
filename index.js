@@ -22,29 +22,33 @@ const write = () => {
 
 const iteration = async () => {
   console.log(new Date(), 'Start of iteration');
-  const response = await fetch(url);
-  const html = await response.text();
-  const $ = cheerio.load(html);
-  const offers = $(`[role="main"] > [data-cy="search.listing"] [data-cy="listing-item-link"]`);
-  const urls = offers.map((i, el) => $(el).attr('href')).get();
   const initialCount = db.length;
-  urls.map((url) => {
-    const match = url.match(/(?<=-)[^-]*$/);
-    if (match) {
-      const id = match[0];
-      const exists = db.find(({id: _id}) => _id === id);
-      if (!exists) {
-        const fullUrl = baseUrl + url;
-        console.log(new Date(), fullUrl);
-        childProcess.execSync(`google-chrome ${fullUrl}`);
-        childProcess.execSync('paplay /usr/share/sounds/freedesktop/stereo/trash-empty.oga');
-        childProcess.execSync(`zenity --info --text="HATA!"`);
-        db.push({id, url: fullUrl});
+  try {
+    const response = await fetch(url);
+    const html = await response.text();
+    const $ = cheerio.load(html);
+    const offers = $(`[role="main"] > [data-cy="search.listing"] [data-cy="listing-item-link"]`);
+    const urls = offers.map((i, el) => $(el).attr('href')).get();
+    urls.map((url) => {
+      const match = url.match(/(?<=-)[^-]*$/);
+      if (match) {
+        const id = match[0];
+        const exists = db.find(({id: _id}) => _id === id);
+        if (!exists) {
+          const fullUrl = baseUrl + url;
+          console.log(new Date(), fullUrl);
+          childProcess.execSync(`google-chrome ${fullUrl}`);
+          childProcess.execSync('paplay /usr/share/sounds/freedesktop/stereo/trash-empty.oga');
+          childProcess.execSync(`zenity --info --text="HATA!"`);
+          db.push({id, url: fullUrl});
+        }
+      } else {
+        console.log('Wrong URL of offer:', url);
       }
-    } else {
-      console.log('Wrong URL of offer:', url);
-    }
-  });
+    });
+  } catch (error) {
+    console.error(new Date(), error);
+  }
   console.log(new Date(), db.length);
   if (db.length !== initialCount) {
     write(db);
